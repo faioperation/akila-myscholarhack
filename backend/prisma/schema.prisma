@@ -1,0 +1,705 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ApplicationStatus {
+  DRAFT
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum SubscriptionStatus {
+  active
+  trial
+  canceled
+  past_due
+}
+
+enum StudentSubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  TRAIL
+  EXPIRED
+  CANCELLED
+  END
+  LIMIT_CROSSED
+}
+
+enum SubscriptionType {
+  MONTHLY
+  YEARLY
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+  OWNER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum AuthProviderType {
+  EMAIL
+  GOOGLE
+}
+
+enum EssayStatus {
+  GENERATING
+  SAVED
+  DELETED
+  FAILED
+  EDITED
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String?
+  passwordHash String?
+  phoneNumber  String?
+  picture      String?
+
+  role                 UserRole   @default(STUDENT)
+  status               UserStatus @default(ACTIVE)
+  isVerified           Boolean    @default(false)
+  isDeleted            Boolean    @default(false)
+  isPlan               Boolean?   @default(false)
+  forgotPasswordStatus Boolean    @default(false)
+
+  auths    AuthProvider[]
+  settings UserSettings?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile                UserProfile?
+  subscriptions          Subscription[]
+  subscriptionStudent    SubscriptionStudent[]
+  applications           Application[]
+  essays                 Essay[]
+  recommendations        Recommendation[]
+  essayComparisons       EssayComparison[]
+  notificationRecipients NotificationRecipient[]
+  studentSettings        StudentSettings?
+  studentReviews         studentReview[]
+  manualApplications     ManualApplication[]
+  studentInstructions    StudentInstruction[]
+
+  @@index([role])
+  @@index([status])
+}
+
+model AuthProvider {
+  id         String           @id @default(cuid())
+  provider   AuthProviderType
+  providerId String?
+  userId     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+model UserProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  fullName       String?
+  profilePicture String?
+  filePath       String?
+  profileUrl     String?
+  bio            String?
+  state          String?
+  gpa            Float?
+  financialNeed  Boolean @default(false)
+
+  education                Education?
+  essays                   Essay[]
+  academicInterest         AcademicInterest?
+  basicInformation         BasicInformation?
+  extraCurricularsActivity ExtracurricularActivity?
+  volunteerWork            VolunteerWork?
+  familyBackground         FamilyBackground?
+  uniqueExperience         UniqueExperience?
+  diversityIdentity        DiversityIdentity?
+  scholarshipSpecificInfo  ScholarshipSpecificInfo?
+  anythingElse             AnythingElse?
+  essaySpecificQuestions   EssaySpecificQuestions?
+  essayComparisons         EssayComparison[]
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+}
+
+model BasicInformation {
+  id String @id @default(cuid())
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  fullName   String
+  schoolType String
+  gpa        Float
+  grade      String?
+  location   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExtracurricularActivity {
+  id String @id @default(cuid())
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  activityName  String
+  yearsInvolved String
+  leadership    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model AcademicInterest {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  intendedMajor String
+  whyThisField  String // long narrative
+  careerGoals   String // 5–10 year vision
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VolunteerWork {
+  id String @id @default(cuid())
+
+  userProfileId     String      @unique
+  userProfile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  whatVolunteerWork String
+  organization      String
+  totalHours        Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model FamilyBackground {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  firstGenStatus       String?
+  householdIncomeRange String?
+  householdSize        Int?
+  familySituations     String? // single-parent, immigrant, military, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UniqueExperience {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  hobbies           String?
+  uniqueExperiences String?
+  proudMoment       String?
+  additionalNotes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DiversityIdentity {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  genderIdentity     String?
+  religiousIdentity  String?
+  selfIdentification String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model ScholarshipSpecificInfo {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  scholarshipsInterested String[]
+  specificScholarships   String?
+  scholarshipDeadline    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model AnythingElse {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  anythingElse String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model EssaySpecificQuestions {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  influentialPerson     String?
+  mistakeAndLesson      String?
+  failureStory          String?
+  issueYouCareAbout     String?
+  whatMakesYouDifferent String?
+  communityChangeIdea   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model Education {
+  id String @id @default(uuid())
+
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  institutionName String
+  level           String // high_school | college | other
+  startYear       Int
+  endYear         Int?
+  major           String?
+  achievements    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([level])
+  @@index([institutionName])
+  @@index([major])
+}
+
+model Essay {
+  id            String  @id @default(uuid())
+  userId        String
+  userProfileId String?
+  scholarshipId String?
+
+  title            String?
+  prompt           String?     @db.Text
+  contentFinal     String?     @db.Text
+  status           EssayStatus @default(GENERATING)
+  subject          String?
+  wordCount        Int?
+  voiceUrl         String?
+  documentUrls     String[]
+  voiceFilePath    String?
+  documentFilePath String[]
+  isDeleted        Boolean     @default(false)
+
+  user           User              @relation(fields: [userId], references: [id])
+  profile        UserProfile?      @relation(fields: [userProfileId], references: [id])
+  scholarship    Scholarship?      @relation(fields: [scholarshipId], references: [id])
+  comparisonsAsA EssayComparison[] @relation("EssayA")
+  comparisonsAsB EssayComparison[] @relation("EssayB")
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  applications       Application[]
+  manualApplications ManualApplication[]
+}
+
+model EssayComparison {
+  id String @id @default(uuid())
+
+  userId        String
+  userProfileId String?
+  essayAId      String
+  essayBId      String
+
+  scoreA Int
+  scoreB Int
+
+  strengthsA    String
+  improvementsA String
+  strengthsB    String
+  improvementsB String
+
+  winner         String
+  percentageDiff Int
+  reason         String
+
+  createdAt DateTime @default(now())
+
+  user    User         @relation(fields: [userId], references: [id])
+  profile UserProfile? @relation(fields: [userProfileId], references: [id])
+  essayA  Essay        @relation("EssayA", fields: [essayAId], references: [id])
+  essayB  Essay        @relation("EssayB", fields: [essayBId], references: [id])
+}
+
+model Scholarship {
+  id String @id @default(uuid())
+
+  title    String
+  type     String
+  amount   Int
+  provider String
+
+  deadline    DateTime?
+  subject     String?
+  description String?
+  images      String[]
+  detailUrl   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recommendations    Recommendation[]
+  essays             Essay[]
+  applications       Application[]
+
+  @@unique([title, provider], name: "title_provider")
+}
+
+model Recommendation {
+  id String @id @default(uuid())
+
+  userId        String
+  scholarshipId String
+
+  score  Int?
+  reason String?
+
+  createdAt DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  scholarship Scholarship @relation(fields: [scholarshipId], references: [id])
+}
+
+model Application {
+  id     String            @id @default(cuid())
+  status ApplicationStatus @default(DRAFT)
+
+  // relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  essayId String?
+  essay   Essay?  @relation(fields: [essayId], references: [id])
+
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id])
+
+  // snapshots (optional but powerful)
+  essayTitle          String?
+  scholarshipTitle    String
+  scholarshipAmount   Int?
+  scholarshipDeadline DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ManualApplication {
+  id     String            @id @default(cuid())
+  status ApplicationStatus @default(DRAFT)
+
+  // relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  essayId String?
+  essay   Essay?  @relation(fields: [essayId], references: [id])
+
+  // New fields for manual entry
+  title       String?
+  type        String?
+  amount      Int @default(0)
+  provider    String?
+  deadline    DateTime?
+  subject     String?
+  description String?
+  images String[] @default([])
+  detailUrl   String?
+  prompt      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+    // 🔥 optional but recommended (for faster queries)
+  @@index([userId])
+}
+
+model SubscriptionStudent {
+  id             String @id @default(uuid())
+  userId         String
+  subscriptionId String
+
+  subscriptionStatus StudentSubscriptionStatus @default(ACTIVE)
+  purchaseDate       DateTime                  @default(now())
+  endDate            DateTime
+  type               SubscriptionType?
+  payload            Json?
+  invoiceUrl         String?
+  invoiceFilePath    String?
+
+  user         User         @relation(fields: [userId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  // @@unique([userId]) // Removed to allow multiple plans per user
+}
+
+model studentReview {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  rating     String?
+  reviewText String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------
+
+model Plan {
+  id String @id @default(uuid())
+
+  // Plan identity (editable)
+  name String @unique
+
+  // UI content
+  description  String?
+  features     String[]
+  planType     String?
+  durationType String?
+
+  // Pricing
+  monthlyPrice Float
+  yearlyPrice  Float
+
+  // Control
+  isActive   Boolean @default(true)
+  sortOrder  Int     @default(0)
+  isFeatured Boolean @default(false)
+
+  // Relations (do not change)
+  subscriptions Subscription[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id     String @id @default(uuid())
+  userId String
+  planId String
+
+  user User @relation(fields: [userId], references: [id])
+  plan Plan @relation(fields: [planId], references: [id])
+
+  status    SubscriptionStatus    @default(active)
+  students  SubscriptionStudent[]
+  expiresAt DateTime? // 🔥 REQUIRED
+  createdAt DateTime              @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  createdAt DateTime @default(now())
+
+  recipients NotificationRecipient[]
+}
+
+model NotificationRecipient {
+  id             String @id @default(uuid())
+  notificationId String
+  userId         String
+
+  isRead    Boolean @default(false)
+  isDeleted Boolean @default(false)
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+}
+
+model Offer {
+  id String @id @default(uuid())
+
+  // UI content
+  title       String
+  description String?
+  ctaText     String?
+
+  // Discount
+  discountType  OfferDiscountType @default(PERCENT)
+  discountValue Float
+
+  // Schedule
+  startDate DateTime
+  endDate   DateTime
+
+  // Control
+  isActive Boolean @default(true)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+enum OfferDiscountType {
+  PERCENT
+  FIXED
+}
+
+model Faq {
+  id String @id @default(uuid())
+
+  category FaqCategory
+  question String
+  answer   String
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+enum FaqCategory {
+  PRICING
+  GETTING_STARTED
+  HOW_IT_WORKS
+  PRIVACY
+  SCHOLARSHIPS
+  TECHNICAL
+  SUPPORT
+  ACADEMIC_INTEGRITY
+}
+
+model StudentSettings {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName             String
+  emailNotifications   Boolean @default(true)
+  scholarshipUpdate    Boolean @default(true)
+  applicationReminders Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserSettings {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailNotifications      Boolean @default(true)
+  userActivityAlerts      Boolean @default(true)
+  systemMaintenanceAlerts Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ScrapeStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model ScrapedData {
+  id String @id @default(uuid())
+
+  // Core required fields
+  name        String
+  url         String
+  description String?
+
+  // Optional categorization
+  type String
+
+  // Raw scraped response
+  payload Json?
+
+  status       ScrapeStatus @default(PENDING)
+  errorMessage String?
+
+  // // Who triggered the scraping (admin/owner)
+  // createdById String?
+  // createdBy   User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([url, type])
+  @@index([status])
+  @@index([type])
+}
+
+model StudentInstruction {
+  id                   String  @id @default(cuid())
+  title                String?
+  instructionText      String? @db.Text
+  instructionPrompt    String? @db.Text
+  aboutScholarshipText String? @db.Text
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
