@@ -1,0 +1,32 @@
+{
+  "name": "my_scholar_hack",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@smastrom/react-rating": "^1.5.0",
+    "@tanstack/react-query": "^5.90.20",
+    "axios": "^1.13.2",
+    "clsx": "^2.1.1",
+    "next": "^15.2.3",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-hot-toast": "^2.6.0",
+    "recharts": "^3.5.1",
+    "swiper": "^12.0.3",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@iconify/react": "^6.0.2",
+    "@tailwindcss/postcss": "^4",
+    "baseline-browser-mapping": "^2.9.19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.2.3",
+    "tailwindcss": "^4"
+  }
+}
