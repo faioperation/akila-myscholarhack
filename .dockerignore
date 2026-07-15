@@ -1,0 +1,35 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Next.js build outputs
+.next
+out
+dist
+
+# Environment variables files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE configurations
+.vscode
+.idea
+.git
+.gitignore
+
+# Docker configurations
+Dockerfile
+docker-compose*.yml
+.dockerignore
+nginx.conf
+
+# Log files
+*.log
+logs
+
+# OS generated files
+.DS_Store
+Thumbs.db

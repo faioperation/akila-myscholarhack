@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/src:/app/src
+      - backend_uploads:/app/uploads
+    command: npm run dev
+
+  ai:
+    ports:
+      - "3001:3000" # Expose to 3001 to avoid conflicts
+    volumes:
+      - ./ai/src:/app/src
+    command: npm run dev
+
+  frontend:
+    ports:
+      - "3000:3000"
+    # Use dev mode for frontend, mounting local code
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    command: npm run dev
